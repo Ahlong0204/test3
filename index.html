@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>정부 안내서비스 카테고리</title>
+<style>
+  :root {
+    --bg: #f5f7fb;
+    --card: #ffffff;
+    --text: #1d2433;
+    --muted: #5b6474;
+    --accent: #1f4e8c;
+    --border: #d9e0ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141a24; --card: #1d2633; --text: #e9eef6; --muted: #9aa6b8; --accent: #7fb0ff; --border: #2d3a4d;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141a24; --card: #1d2633; --text: #e9eef6; --muted: #9aa6b8; --accent: #7fb0ff; --border: #2d3a4d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Malgun Gothic", "맑은 고딕", system-ui, sans-serif; line-height: 1.5;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; color: var(--accent); }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: 0.95rem; }
+
+  .gallery {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px;
+  }
+  .gallery img {
+    width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--border); background: var(--card);
+  }
+
+  .search {
+    display: flex; gap: 8px; margin-bottom: 8px;
+  }
+  .search input {
+    flex: 1; min-width: 0; padding: 10px 12px; font-size: 1rem; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--card); color: var(--text);
+  }
+  .search button {
+    padding: 10px 16px; border-radius: 8px; border: 0; background: var(--accent); color: #fff; font-size: 0.95rem; cursor: pointer;
+  }
+  .result-count { color: var(--muted); font-size: 0.95rem; margin: 8px 0 16px; }
+
+  .cards {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 28px;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; cursor: pointer;
+  }
+  .card:hover, .card.active { border-color: var(--accent); }
+  .card h2 { font-size: 1.1rem; margin: 0 0 8px; }
+  .card .count { font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+  .card .count small { font-size: 0.9rem; color: var(--muted); font-weight: 400; }
+  .card .org { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+
+  table {
+    width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border); font-size: 0.93rem;
+  }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: var(--bg); color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  .empty { padding: 24px; text-align: center; color: var(--muted); }
+
+  @media (max-width: 720px) {
+    .gallery { grid-template-columns: repeat(2, 1fr); }
+    table, thead, tbody, tr, th, td { display: block; }
+    thead { display: none; }
+    tr { border-bottom: 1px solid var(--border); padding: 8px 0; }
+    td { border: 0; padding: 4px 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>정부 안내서비스 카테고리</h1>
+  <p class="sub">카테고리별 안내서비스 현황 (총 <span id="total">0</span>건)</p>
+
+  <div class="gallery">
+    <img src="images/card1.png" alt="카드뉴스 1" loading="lazy">
+    <img src="images/card2.png" alt="카드뉴스 2" loading="lazy">
+    <img src="images/card3.png" alt="카드뉴스 3" loading="lazy">
+    <img src="images/card4.png" alt="카드뉴스 4" loading="lazy">
+  </div>
+
+  <div class="search">
+    <input id="q" type="search" placeholder="카테고리 또는 문의기관으로 검색 (예: 복지, 국토교통부)" aria-label="검색어">
+    <button id="reset" type="button">초기화</button>
+  </div>
+  <div class="result-count" id="resultCount"></div>
+
+  <div class="cards" id="cards"></div>
+
+  <table>
+    <thead>
+      <tr><th>서비스ID</th><th>서비스명</th><th>안내분야</th><th>카테고리</th><th>문의기관</th><th>온라인안내</th><th>콜센터</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+
+<script>
+  // 첨부 안내서비스.csv 내용 (서비스ID, 서비스명, 안내분야, 소관기관, 온라인안내, 콜센터, 카테고리, 문의기관)
+  const DATA = [
+    ["A001","주민등록 발급 안내","민원","국토교통부","가능","1374","민원","국토교통부"],
+    ["A002","전입신고 안내","민원","보건복지부","가능","1352","민원","보건복지부"],
+    ["A003","인감증명 안내","민원","국토교통부","가능","1313","민원","국토교통부"],
+    ["A004","민원접수 안내","민원","교육부","가능","1341","민원","교육부"],
+    ["A005","정부24 이용 안내","민원","국토교통부","가능","1356","민원","국토교통부"],
+    ["A006","기초연금 안내","복지","보건복지부","불가","1386","복지","보건복지부"],
+    ["A007","복지급여 안내","복지","고용노동부","가능","1319","복지","고용노동부"],
+    ["A008","장애인지원 안내","복지","보건복지부","가능","1337","복지","보건복지부"],
+    ["A009","아동수당 안내","복지","지자체","가능","1326","복지","지자체"],
+    ["A010","지방세 납부 안내","세금","보건복지부","가능","1357","세금","보건복지부"],
+    ["A011","취득세 안내","세금","지자체","가능","1341","세금","지자체"],
+    ["A012","재산세 안내","세금","지자체","가능","1317","세금","지자체"],
+    ["A013","자동차등록 안내","교통","국토교통부","가능","1399","교통","국토교통부"],
+    ["A014","운전면허 안내","교통","보건복지부","불가","1357","교통","보건복지부"],
+    ["A015","주정차단속 안내","교통","국토교통부","가능","1367","교통","국토교통부"],
+    ["A016","재난지원금 안내","재난","행정안전부","불가","1356","재난","행정안전부"],
+    ["A017","대피소 안내","재난","국세청","가능","1359","재난","국세청"],
+    ["A018","안전신고 안내","재난","국세청","가능","1357","재난","국세청"],
+    ["A019","국민취업지원 안내","일자리","지자체","가능","1386","일자리","지자체"],
+    ["A020","구직급여 안내","일자리","국토교통부","불가","1350","일자리","국토교통부"],
+    ["A021","청년일자리 안내","일자리","지자체","가능","1392","일자리","지자체"],
+    ["A022","평생교육 안내","교육","지자체","가능","1379","교육","지자체"],
+    ["A023","학자금 안내","교육","지자체","가능","1324","교육","지자체"],
+    ["A024","교육비지원 안내","교육","행정안전부","가능","1368","교육","행정안전부"]
+  ].map(r => ({
+    id: r[0], name: r[1], field: r[2], dept: r[3], online: r[4], call: r[5], category: r[6], org: r[7]
+  }));
+
+  // 카테고리별 집계: 건수, 대표 문의기관(가장 많이 등장한 기관)
+  function summarize(items) {
+    const map = new Map();
+    for (const it of items) {
+      if (!map.has(it.category)) map.set(it.category, { name: it.category, count: 0, orgs: new Map() });
+      const c = map.get(it.category);
+      c.count++;
+      c.orgs.set(it.org, (c.orgs.get(it.org) || 0) + 1);
+    }
+    return [...map.values()].map(c => {
+      let rep = "", best = -1;
+      for (const [org, n] of c.orgs) if (n > best) { best = n; rep = org; }
+      return { name: c.name, count: c.count, rep };
+    });
+  }
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+
+  let activeCategory = null;
+
+  function render() {
+    const q = $("q").value.trim();
+    // 검색: 카테고리 또는 문의기관에 포함되는 항목
+    let items = DATA.filter(it => !q || it.category.includes(q) || it.org.includes(q));
+    if (activeCategory) items = items.filter(it => it.category === activeCategory);
+
+    $("total").textContent = DATA.length;
+    $("resultCount").textContent = `결과 ${items.length}건`;
+
+    const cats = summarize(items);
+    $("cards").innerHTML = cats.length
+      ? cats.map(c => `
+          <div class="card ${c.name === activeCategory ? "active" : ""}" data-cat="${esc(c.name)}" role="button" tabindex="0">
+            <h2>${esc(c.name)}</h2>
+            <div class="count">${c.count}<small> 건</small></div>
+            <div class="org">대표 문의기관: ${esc(c.rep)}</div>
+          </div>`).join("")
+      : `<div class="empty" style="grid-column:1/-1">검색 결과가 없습니다.</div>`;
+
+    $("rows").innerHTML = items.length
+      ? items.map(it => `
+          <tr>
+            <td>${esc(it.id)}</td><td>${esc(it.name)}</td><td>${esc(it.field)}</td>
+            <td>${esc(it.category)}</td><td>${esc(it.org)}</td><td>${esc(it.online)}</td><td>${esc(it.call)}</td>
+          </tr>`).join("")
+      : `<tr><td colspan="7" class="empty">표시할 항목이 없습니다.</td></tr>`;
+  }
+
+  $("cards").addEventListener("click", e => {
+    const card = e.target.closest(".card");
+    if (!card) return;
+    const cat = card.dataset.cat;
+    activeCategory = activeCategory === cat ? null : cat;
+    render();
+  });
+  $("cards").addEventListener("keydown", e => {
+    if (e.key === "Enter" && e.target.classList.contains("card")) e.target.click();
+  });
+  $("q").addEventListener("input", () => { activeCategory = null; render(); });
+  $("reset").addEventListener("click", () => { $("q").value = ""; activeCategory = null; render(); });
+
+  render();
+</script>
+</body>
+</html>
